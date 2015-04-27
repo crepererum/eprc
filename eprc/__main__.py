@@ -78,7 +78,15 @@ def run_calc(args):
                 todo = scheduler.get()
 
             # finally solve our problem
-            solver.solve(scheduler, db, must_satisfy, tmpdir, args.solver, args.outfile)
+            solver.solve(
+                scheduler,
+                db,
+                must_satisfy,
+                tmpdir,
+                args.solver,
+                args.outfile,
+                args.include_starting_points
+            )
 
     except utils.HandledError as e:
         logging.error(e.message)
@@ -157,6 +165,15 @@ def run():
         "-c", "--cached",
         help='Only used cached data and do not extract new requirements from '
         'PyPi packages',
+        action="store_true",
+        default=False
+    )
+
+    parser_calc.add_argument(
+        "-i", "--include-starting-points",
+        help='Include requirements that are given by paths, e.g. if one of '
+        'the paths contain `foo` at version 1.0, `foo==1.0` will be added to'
+        'the output file.',
         action="store_true",
         default=False
     )

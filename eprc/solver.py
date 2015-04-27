@@ -49,7 +49,7 @@ class VariableRegister(object):
         return variable
 
 
-def solve(scheduler, db, must_satisfy, tmpdir, solver, outpath):
+def solve(scheduler, db, must_satisfy, tmpdir, solver, outpath, include_starting_points=False):
     register = VariableRegister()
 
     # get all names and known extras
@@ -230,20 +230,25 @@ def solve(scheduler, db, must_satisfy, tmpdir, solver, outpath):
                     packages[(name, version)].add(extra)
 
         with open(outpath, "w") as outfile:
+            exclude = set()
+            if not include_starting_points:
+                exclude = set(name for name, _version in must_satisfy)
+
             for (name, version), extras in sorted(
                     packages.iteritems(),
                     key=lambda ((name, _version), _extras): name):
-                requirement_string = "{}".format(name)
+                if name not in exclude:
+                    requirement_string = "{}".format(name)
 
-                if version != VariableRegister.VIRTUAL_VERSION:
-                    requirement_string += "=={}".format(version)
+                    if version != VariableRegister.VIRTUAL_VERSION:
+                        requirement_string += "=={}".format(version)
 
-                extras.remove("")
-                if extras:
-                    requirement_string += "[" + ",".join(sorted(extras)) + "]"
+                    extras.remove("")
+                    if extras:
+                        requirement_string += "[" + ",".join(sorted(extras)) + "]"
 
-                outfile.write(requirement_string)
-                outfile.write("\n")
+                    outfile.write(requirement_string)
+                    outfile.write("\n")
 
         logging.info("Wrote requirements to {}".format(outpath))
     else:
