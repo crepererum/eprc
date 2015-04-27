@@ -426,7 +426,7 @@ class VariableRegister(object):
         return variable
 
 
-def solve(scheduler, db, must_satisfy, tmpdir, solver, outfile):
+def solve(scheduler, db, must_satisfy, tmpdir, solver, outpath):
     register = VariableRegister()
 
     # get all names and known extras
@@ -606,7 +606,7 @@ def solve(scheduler, db, must_satisfy, tmpdir, solver, outfile):
                         packages[(name, version)] = set()
                     packages[(name, version)].add(extra)
 
-        with open(outfile, "w") as outfile:
+        with open(outpath, "w") as outfile:
             for (name, version), extras in sorted(
                     packages.iteritems(),
                     key=lambda ((name, _version), _extras): name):
@@ -622,7 +622,7 @@ def solve(scheduler, db, must_satisfy, tmpdir, solver, outfile):
                 outfile.write(requirement_string)
                 outfile.write("\n")
 
-        logging.info("Wrote requirements to {}".format(outfile))
+        logging.info("Wrote requirements to {}".format(outpath))
     else:
         logging.error("Cannot find a solution")
 
