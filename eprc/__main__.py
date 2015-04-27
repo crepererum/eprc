@@ -2,6 +2,7 @@ import argparse
 import itertools
 import logging
 import pkg_resources
+import pprint
 
 from database import Database
 from extractor import Extractor
@@ -11,49 +12,8 @@ import solver
 import utils
 
 
-def parse_args():
-    parser = argparse.ArgumentParser(
-        prog='eprc',
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
-    )
-
-    parser.add_argument(
-        "-e", "--virtualenv",
-        type=str,
-        default="virtualenv2"
-    )
-
-    parser.add_argument(
-        'paths',
-        nargs='+',
-        type=str
-    )
-
-    parser.add_argument(
-        "-c", "--cached",
-        action="store_true",
-        default=False
-    )
-
-    parser.add_argument(
-        "-s", "--solver",
-        type=str,
-        default="java -jar {}".format(pkg_resources.resource_filename(__name__, "sat4j-pb.jar"))
-    )
-
-    parser.add_argument(
-        "-o", "--outfile",
-        type=str,
-        default="requirements.txt"
-    )
-
-    return parser.parse_args()
-
-
-def run():
+def run_calc(args):
     try:
-        args = parse_args()
-
         with utils.TemporaryDirectory() as tmpdir:
             logging.getLogger().setLevel(logging.INFO)
             logging.basicConfig(
@@ -66,9 +26,9 @@ def run():
                 pypi=pypi
             )
             db = Database(
-                host="localhost",
-                port=6378,
-                db=0
+                host=args.redis_host,
+                port=args.redis_port,
+                db=args.redis_db
             )
             scheduler = Scheduler(
                 db=db,
@@ -120,9 +80,128 @@ def run():
             # finally solve our problem
             solver.solve(scheduler, db, must_satisfy, tmpdir, args.solver, args.outfile)
 
-
     except utils.HandledError as e:
         logging.error(e.message)
+
+
+def run_get(args):
+    db = Database(
+        host=args.redis_host,
+        port=args.redis_port,
+        db=args.redis_db
+    )
+
+    if args.version:
+        pprint.pprint(db.get(args.name, args.version))
+    else:
+        pprint.pprint([
+            db.get(args.name, version)
+            for version in db.all_versions(args.name)
+        ])
+
+
+def run():
+    parser = argparse.ArgumentParser(
+        prog='eprc',
+        description='Experimental Python Requirements Calculator',
+        epilog='WARNING: Do not use this for produciton use!',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+
+    parser.add_argument(
+        '--redis-host',
+        help='Redis host used for caching.',
+        type=str,
+        default='localhost'
+    )
+
+    parser.add_argument(
+        '--redis-port',
+        help='Redis port',
+        type=int,
+        default=6378
+    )
+
+    parser.add_argument(
+        '--redis-db',
+        help='Redis DB number',
+        type=int,
+        default=0
+    )
+
+    subparsers = parser.add_subparsers()
+
+    parser_calc = subparsers.add_parser(
+        'calc',
+        help='Calculate requirements and write them to a requirements '
+        'file used by pip'
+    )
+    parser_calc.set_defaults(func=run_calc)
+
+    parser_calc.add_argument(
+        "-e", "--virtualenv",
+        help='The virtualenv command used to create clean environments for '
+        'process isolation.',
+        type=str,
+        default="virtualenv2"
+    )
+
+    parser_calc.add_argument(
+        'paths',
+        help='Paths of the packages you want the requirements calculate for.',
+        nargs='+',
+        type=str
+    )
+
+    parser_calc.add_argument(
+        "-c", "--cached",
+        help='Only used cached data and do not extract new requirements from '
+        'PyPi packages',
+        action="store_true",
+        default=False
+    )
+
+    parser_calc.add_argument(
+        "-s", "--solver",
+        help='The Pseudo Boolean Constraint Optimzation solver used for '
+        'finding a feasable and good set of packages to install. It must '
+        'accept OPB files and must write the solution to STDOUT. See the '
+        'following PDF for a complete specification: '
+        'http://www.cril.univ-artois.fr/PB12/format.pdf',
+        type=str,
+        default="java -jar {}".format(
+            pkg_resources.resource_filename(__name__, "sat4j-pb.jar")
+        )
+    )
+
+    parser_calc.add_argument(
+        "-o", "--outfile",
+        help='Output file (usually requirements.txt) that can be used by pip.',
+        type=str,
+        default="requirements.txt"
+    )
+
+    parser_get = subparsers.add_parser(
+        'get',
+        help='Gets cached requirements data from database.'
+    )
+    parser_get.set_defaults(func=run_get)
+
+    parser_get.add_argument(
+        'name',
+        help='Name of the package.',
+        type=str
+    )
+
+    parser_get.add_argument(
+        'version',
+        help='Optional package version.',
+        nargs='?',
+        type=str
+    )
+
+    args = parser.parse_args()
+    args.func(args)
 
 if __name__ == '__main__':
     run()
