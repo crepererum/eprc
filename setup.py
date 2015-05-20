@@ -28,6 +28,7 @@ setup(
     author='Marco Neumann',
     author_email='marco@crepererum.net',
     keywords='eprc requirements calculation pip',
+    license='GPLv2',
     description=__doc__,
     long_description=readme,
     platforms='any',
