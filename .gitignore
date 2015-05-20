@@ -1,3 +1,22 @@
-*.log
-*.pyc
+*~
+*.py[cod]
+
+# Packages
+*.egg
+*.egg-info
+.eggs
+__pycache__
+
+# Unit test / coverage reports
+.cache
+.coverage
+.tox
+
+# doc
 docs/build
+
+# log files
+*.log
+
+# txt files (like requirements.txt)
+*.txt
