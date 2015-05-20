@@ -1,6 +1,6 @@
 Experimental Python Requirements Calculator
 *******************************************
-This is an **experimtal** approach to fix one of the most fundamental issues
+This is an **experimental** approach to fix one of the most fundamental issues
 with `pip <https://pip.pypa.io/>`_: `The lack of a dependency resolver
 <https://github.com/pypa/pip/issues/988>`_
 
